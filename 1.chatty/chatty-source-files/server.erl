@@ -13,7 +13,7 @@ process_requests(Clients) ->
             broadcast(NewClients, {join, Name}),
             process_requests(NewClients);
         {client_leave_req, Name, From} ->
-            NewClients = lists:delete({Name, From}, Clients),
+            NewClients = lists:delete(From, Clients),
             broadcast(Clients, {leave, Name}),
             From ! exit,
             process_requests(NewClients);
