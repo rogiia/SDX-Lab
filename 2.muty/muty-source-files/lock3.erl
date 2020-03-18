@@ -39,14 +39,13 @@ wait(Nodes, Master, Refs, Waiting, TakeRef, MyId, Clock,
     receive
       {request, From, Ref, ReqId, Timestamp} ->
         NewClock = synch(NextClock, Timestamp),
-        if Timestamp < Clock;
-          Timestamp =:= Clock, ReqId < MyId ->
-        From ! {ok, Ref},
-        wait(Nodes, Master, Refs, Waiting, TakeRef, MyId, Clock,
-              NewClock);
+        if Timestamp < Clock; Timestamp =:= Clock, ReqId < MyId ->
+            From ! {ok, Ref},
+            wait(Nodes, Master, Refs, Waiting, TakeRef, MyId, Clock,
+                  NewClock);
           true ->
-        wait(Nodes, Master, Refs, [{From, Ref} | Waiting],
-              TakeRef, MyId, Clock, NewClock)
+            wait(Nodes, Master, Refs, [{From, Ref} | Waiting],
+                  TakeRef, MyId, Clock, NewClock)
         end;
       {ok, Ref} ->
         NewRefs = lists:delete(Ref, Refs),
