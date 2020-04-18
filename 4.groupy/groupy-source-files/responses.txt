@@ -3,3 +3,7 @@ a) If the leader worker crashes, the remaining workers just stop changing state.
 b) If the leader worker crashes, the rest of the nodes keep synchronizing their state without problems.
 c) If a slave worker crashes, it will keep being in the list of slaves but if it is elected, all the other nodes will try to monitor it and will recieve a 'DOWN' message, which will restart the election without the node that failed.
 MS4) Image with the state of the system after a slave and the leader crashed, the nodes keep coordinating.
+d) Because the leader crashes between sending messages to every slave, so some slaves recieve the change of state but the others don't. Furthermore, the new elected leader is not aware of the change or which nodes haven't received the state change.
+e) We could implement an acknowledgement of messages and retry sending the message if the leader does not receive the acknowledgement of a node.
+f) All the slaves will go on election and elect a new leader, and the old one will become isolated from the system, waiting for messages but receiving none.
+g) 

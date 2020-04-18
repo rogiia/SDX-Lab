@@ -1,4 +1,4 @@
--module(gms2).
+-module(gms3).
 -export([start/1, start/2]).
 -define(timeout, 1000).
 -define(arghh, 100).
@@ -8,7 +8,7 @@ start(Name) ->
     spawn_link(fun()-> init(Name, Self) end).
 
 init(Name, Master) ->
-    leader(Name, Master, []).
+    leader(Name, Master, [], 1).
 
 start(Name, Grp) ->
     Self = self(),
@@ -18,24 +18,24 @@ init(Name, Grp, Master) ->
     Self = self(), 
     Grp ! {join, Self},
     receive
-        {view, Leader, Slaves} ->
+        {view, N, Leader, Slaves} = NewLast ->
             Ref = erlang:monitor(process, Leader),
             Master ! joined,
-            slave(Name, Master, Leader, Slaves, Ref)
+            slave(Name, Master, Leader, Slaves, Ref, N+1, NewLast)
     after ?timeout ->
         Master ! {error, "No reply from the leader"}
     end.
 
-leader(Name, Master, Slaves) ->    
+leader(Name, Master, Slaves, N) ->
     receive
         {mcast, Msg} ->
-            bcast(Name, {msg, Msg}, Slaves),
+            bcast(Name, {msg, N, Msg}, Slaves),
             Master ! {deliver, Msg},
-            leader(Name, Master, Slaves);
+            leader(Name, Master, Slaves, N+1);
         {join, Peer} ->
             NewSlaves = lists:append(Slaves, [Peer]),           
-            bcast(Name, {view, self(), NewSlaves}, NewSlaves),
-            leader(Name, Master, NewSlaves);
+            bcast(Name, {view, N, self(), NewSlaves}, NewSlaves),
+            leader(Name, Master, NewSlaves, N+1);
         stop ->
             ok;
         Error ->
@@ -58,38 +58,43 @@ crash(Name, Msg) ->
             ok
     end.
 
-slave(Name, Master, Leader, Slaves, Ref) ->
+slave(Name, Master, Leader, Slaves, Ref, N, Last) ->
     receive
-        {mcast, Msg} ->
+        {mcast, Msg}->
             Leader ! {mcast, Msg},
-            slave(Name, Master, Leader, Slaves, Ref);
+            slave(Name, Master, Leader, Slaves, Ref, N, Last);
         {join, Peer} ->
             Leader ! {join, Peer},
-            slave(Name, Master, Leader, Slaves, Ref);
-        {msg, Msg} ->
+            slave(Name, Master, Leader, Slaves, Ref, N, Last);
+        {msg, N, Msg} = NewLast ->
             Master ! {deliver, Msg},
-            slave(Name, Master, Leader, Slaves, Ref);
-        {view, Leader, NewSlaves} ->
-            slave(Name, Master, Leader, NewSlaves, Ref);
-        {view, NewLeader, NewSlaves} ->
+            slave(Name, Master, Leader, Slaves, Ref, N+1, NewLast);
+        {msg, I, _} when I < N ->
+            slave(Name, Master, Leader, Slaves, Ref, N, Last);
+        {view, N, Leader, NewSlaves} = NewLast ->
+            slave(Name, Master, Leader, NewSlaves, Ref, N+1, NewLast);
+        {view, N, NewLeader, NewSlaves} = NewLast ->
             erlang:demonitor(Ref, [flush]),
             NewRef = erlang:monitor(process, NewLeader),
-            slave(Name, Master, NewLeader, NewSlaves, NewRef);
+            slave(Name, Master, NewLeader, NewSlaves, NewRef, N+1, NewLast);
+        {view, I, Leader, _} when I < N ->
+            slave(Name, Master, Leader, Slaves, Ref, N, Last);
         {'DOWN', _Ref, process, Leader, _Reason} ->
-            election(Name, Master, Slaves);
+            election(Name, Master, Slaves, N, Last);
         stop ->
             ok;
         Error ->
             io:format("slave ~s: strange message ~w~n", [Name, Error])
     end.
 
-election(Name, Master, Slaves) -> 
+election(Name, Master, Slaves, N, Last) ->
     Self = self(),
     case Slaves of
         [Self|Rest] ->
-            bcast(Name, {view, Self, Rest}, Rest),
-            leader(Name, Master, Rest);
+            bcast(Name, Last, Rest),
+            bcast(Name, {view, N, Self, Rest}, Rest),
+            leader(Name, Master, Rest, N+1);
         [NewLeader|Rest] ->
             Ref = erlang:monitor(process, NewLeader),
-            slave(Name, Master, NewLeader, Rest, Ref)
+            slave(Name, Master, NewLeader, Rest, Ref, N, Last)
     end.
