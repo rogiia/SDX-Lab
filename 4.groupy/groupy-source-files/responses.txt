@@ -1,0 +1,5 @@
+MS1) Tryng various Sleep values from 30 to 5000 milliseconds it seems that all nodes are able to keep up with the state coordination.
+a) If the leader worker crashes, the remaining workers just stop changing state.
+b) If the leader worker crashes, the rest of the nodes keep synchronizing their state without problems.
+c) If a slave worker crashes, it will keep being in the list of slaves but if it is elected, all the other nodes will try to monitor it and will recieve a 'DOWN' message, which will restart the election without the node that failed.
+MS4) Image with the state of the system after a slave and the leader crashed, the nodes keep coordinating.
