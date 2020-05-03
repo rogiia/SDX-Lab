@@ -21,6 +21,10 @@ resolver(Cache) ->
             {Reply, NewCache} = resolve(Req, Cache),
             From ! {reply, Reply},
             resolver(NewCache);
+        purge ->
+            NewCache = cache:purge(Cache),
+            io:format("Resolver: cache was purged: ~w~n", [NewCache]),
+            resolver(NewCache);
         status ->
             io:format("Resolver: cache content: ~w~n", [Cache]),
             resolver(Cache);
