@@ -1,0 +1,17 @@
+open(Nodes, MyId, Clock) ->
+    receive
+      {take, Master, Ref} ->
+        NewClock = Clock + 1,
+        Refs = lists:map(fun(P) ->
+          R = make_ref(),
+          P ! {request, self(), R, MyId, NewClock},
+          R
+        end, Nodes),
+        wait(Nodes, Master, Refs, [], Ref, MyId, NewClock,
+            NewClock);
+      {request, From, Ref, _, Timestamp} ->
+        From ! {ok, Ref},
+        NewClock = Timestamp,
+        open(Nodes, MyId, NewClock);
+      stop -> ok
+    end.

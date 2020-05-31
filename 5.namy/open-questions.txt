@@ -1,0 +1,28 @@
+a) The second time, the resolver finds the server name in the cache but, since
+TTL time is 0, and so the entry is removed and we still need to scale to the
+root server.
+b) When a host fails, we can still resolve its name but when we ping it, we
+receive no response.
+c) Now, when the host stops, the resolver responds to the client 'unknown
+host'.
+d) After the host has restarted and registered itself, the client is unable to
+find it because it hits a cache which points to a process that is no longer
+running.
+e) Cached information in the resolver keeps pointing to old hosts even if
+they are no longer running.
+f) The only nodes which know about the host movement is the server to which the
+host registers itself.
+g) The client will be able to query the host correctly after the TTL has
+expired, so the result of the query will be invalid and the request will be
+escalated again to the server with the upadated host process.
+h) Given D is domain server depth, F is the interval in seconds which the
+client waits to make each request, R is the total duration of the client's
+action and T is the TTL time. 
+Without the cache:
+NumM = 2D((R/F)+1)
+
+With cache:
+Given T' is the next multiple of F after T
+NumM = 2D(|R/T'|+1)
+
+  

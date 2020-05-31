@@ -1,0 +1,6 @@
+a) The advantadge of a more frequent stabilizing procedure is that new nodes are quicly linked into the ring. The disadvantadge is that more messages will be sent and the ring might be unstable.
+b) No, eventually the ring will stabilize and the node will be put in the proper place.
+c) If we didn't schedule the stabilizing procedure new nodes would not try to get into the ring and so they would be left out.
+d)
+e)
+f) When stabilization hits again, the node will request its successor and will see that it is no longer in the ring, so it will try to get in again.
